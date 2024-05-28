@@ -4,6 +4,7 @@ from gpiozero import Button
 from time import sleep, time
 import threading
 import numpy as np
+import sys
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -53,11 +54,11 @@ print("Součet hodnot:", final_values.sum())
 def countdown_timer(count, action):
     for i in range(count, 0, -1):
         countdown_label.config(text=f"{action} za {i} sekund.")
-        window.update()
+        update_window()
         sleep(1)
     #countdown_label.config(text=f"{action} právě probíhá.")
     countdown_label.config(text="")
-    window.update()
+    update_window()
 
 def run_auction():
     global current_price, auction_active, current_auction, final_values, auction_countdown
@@ -71,7 +72,7 @@ def run_auction():
     price_label.config(text=f"Startovní cena: {current_price}\n")
     round_label.config(text=f"Kolo aukce #{current_auction+1} z {num_auctions}")
     draw_gauge(current_price)
-    window.update()
+    update_window()
 
     if (not auction_countdown): 
         auction_countdown = True
@@ -85,7 +86,7 @@ def run_auction():
             current_price -= bid_decrement
             price_label.config(text=f"Cena: {current_price}\n")
             draw_gauge(current_price)
-            window.update()
+            update_window()
             #sleep(0.01)  # Zkrácený čas pro dynamickou aukci
 
         if auction_active:
@@ -118,7 +119,7 @@ def evaluate_winner(final):
         tree.item(child, tags=('normal',))  # Resetování všech značek
     tree.item(tree.get_children()[winner_index], tags=('winner',))
     
-    window.update()
+    update_window()
 
 def handle_auction_end(winner):
     global current_auction, auction_active
@@ -126,7 +127,7 @@ def handle_auction_end(winner):
         price_label.config(text=f"{current_auction+1}. kolo aukce skončilo.\nVítězem kola se stal/a hráč/ka č. {winner+1}.")
     else:
         price_label.config(text=f"{current_auction+1}. kolo aukce skončilo.\nKolo nemá vítěze.")        
-    window.update()
+    update_window()
     current_auction += 1
     auction_active = False
     if current_auction < num_auctions:
@@ -165,7 +166,7 @@ def register_players():
     round_label.config(text="")
     countdown_label.config(text="Stiskněte tlačítko a registrujte se do hry.")
     while sum(registered_players) < 2:
-        window.update()
+        update_window()
         sleep(0.1)
     price_label.config(text="Probíhá registrace do hry.\nPoslední možnost se přihlásit.")
     start_button.config(state=tk.NORMAL)  # Enable start button after registration of 2 players
@@ -188,7 +189,7 @@ def reset_game():
     #for label in player_labels:
     #    label.config(text=label['text'].split(':')[0] + ': 0')
     update_table()
-    window.update()
+    update_window()
     start_button.config(state=tk.DISABLED)
     register_players()
 
@@ -214,6 +215,20 @@ def handle_key_press(event, player_index):
     elif auction_active:
         player_action(player_index)
         
+
+#dekorátor pro exception při zavírání okna
+def catch_tcl_error(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except tk.TclError as e:
+            #print("TclError caught:", e)
+            sys.exit()
+    return wrapper
+
+@catch_tcl_error
+def update_window():
+    window.update()
 
 
 # GUI setup
